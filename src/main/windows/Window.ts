@@ -12,7 +12,11 @@ import { installExtensions } from '../utils/WindowUtils';
 abstract class Window {
   window: BrowserWindow | null = null;
 
-  abstract size: { x: number; y: number };
+  size: { x: number; y: number } | undefined;
+
+  minSize: { x: number; y: number } | undefined;
+
+  resizable: boolean = true;
 
   abstract view: string;
 
@@ -43,8 +47,7 @@ abstract class Window {
     // WARN: Be careful with the preload paths below (they are relative to windows/Window.ts)
     const options: BrowserWindowConstructorOptions = {
       show: false,
-      width: this.size.x,
-      height: this.size.y,
+      resizable: this.resizable,
       icon: pathUtils.getAssetPath(this.icon),
       webPreferences: {
         devTools: this.openDevTools,
@@ -54,6 +57,16 @@ abstract class Window {
           : path.join(__dirname, '../../../.erb/dll/preload.js'),
       },
     };
+
+    if (this.size) {
+      options.width = this.size.x;
+      options.height = this.size.y;
+    }
+
+    if (this.minSize) {
+      options.maxWidth = this.minSize.x;
+      options.maxHeight = this.minSize.y;
+    }
 
     this.window = new BrowserWindow(options);
 
