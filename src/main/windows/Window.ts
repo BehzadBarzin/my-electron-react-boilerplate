@@ -4,7 +4,7 @@ import {
   BrowserWindowConstructorOptions,
   shell,
 } from 'electron';
-import MenuBuilder from '../menus/MainMenu';
+import MenuBuilder from '../menus/MenuBuilder';
 import AppUpdater from '../utils/AppUpdater';
 import PathUtils from '../utils/PathUtils';
 import { installExtensions } from '../utils/WindowUtils';
@@ -18,6 +18,8 @@ abstract class Window {
 
   abstract icon: string;
 
+  openDevTools: boolean = true;
+
   isDebug: boolean;
 
   isPackaged: boolean;
@@ -26,6 +28,11 @@ abstract class Window {
     this.isDebug = isDebug;
     this.isPackaged = isPackaged;
   }
+
+  /**
+   * This method must return an instance of menu builder to be used in createWindow
+   */
+  abstract getMenuBuilder(): MenuBuilder | null;
 
   async createWindow() {
     const pathUtils = new PathUtils(this.isPackaged);
@@ -40,6 +47,7 @@ abstract class Window {
       height: this.size.y,
       icon: pathUtils.getAssetPath(this.icon),
       webPreferences: {
+        devTools: this.openDevTools,
         sandbox: false,
         preload: this.isPackaged
           ? path.join(__dirname, '../preload.js')
@@ -66,8 +74,9 @@ abstract class Window {
       this.window = null;
     });
 
-    const menuBuilder = new MenuBuilder(this.window);
-    menuBuilder.buildMenu();
+    // If a class was provided as the menu builder, build the menu
+    const menuBuilder = this.getMenuBuilder();
+    if (menuBuilder) menuBuilder.buildMenu();
 
     // Open urls in the user's browser
     this.window.webContents.setWindowOpenHandler((edata) => {
